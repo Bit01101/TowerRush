@@ -2,57 +2,14 @@ import { Game } from "../../plugins/Game/Game.ts";
 import sdk from "@smoud/playable-sdk";
 import { AssetsBase64 } from "../../plugins/Assets/AssetsBase64.ts";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB.ts";
-import { AnimatedSprite, Container, Sprite, Texture } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { OnClick } from "../../plugins/Utils/UIEvents.ts";
 import { AnimPulseIn, Play } from "../../plugins/Utils/Animations.ts";
 import gsap from "gsap";
+import { AnimationService } from "../utilities/animations/animation.ts";
+import { House } from "../components/house.ts";
 
 export async function Main(game: Game) {
-  type TypeFloor =
-    | "basis_tower_00000_00000"
-    | "Home1_00000_00000"
-    | "Home2_00000_00169"
-    | "Home3_00000_00645"
-    | "house_4_00224"
-    | "house_500000"
-    | "house_6_00000";
-
-  type TypeTree = "Tree1_00000" | "Tree2_00000";
-
-  const FLOOR_CONFIG: Record<
-    TypeFloor,
-    { offsetY: number; scaleLoss: number; tree: TypeTree | null }
-  > = {
-    basis_tower_00000_00000: { offsetY: 0.25, scaleLoss: 0.15, tree: null },
-    Home1_00000_00000: { offsetY: 0.4, scaleLoss: 0.15, tree: null },
-    Home2_00000_00169: { offsetY: 0.475, scaleLoss: 0.15, tree: "Tree1_00000" },
-    Home3_00000_00645: {
-      offsetY: 0.525,
-      scaleLoss: 0.085,
-      tree: "Tree1_00000",
-    },
-    house_4_00224: { offsetY: 0.595, scaleLoss: 0.12, tree: "Tree2_00000" },
-    house_500000: { offsetY: 0.626, scaleLoss: 0.11, tree: "Tree2_00000" },
-    house_6_00000: { offsetY: 0.626, scaleLoss: 0.1, tree: "Tree2_00000" },
-  };
-
-  const FLOOR_ORDER: TypeFloor[] = [
-    "basis_tower_00000_00000",
-    "Home1_00000_00000",
-    "Home2_00000_00169",
-    "Home3_00000_00645",
-    "house_4_00224",
-    "house_500000",
-    "house_6_00000",
-  ];
-
-  interface IFloorData {
-    id: number;
-    height: number;
-    width: number;
-    type: TypeFloor;
-  }
-
   await AssetsBase64.loadAll();
 
   const root = new Container();
@@ -68,23 +25,9 @@ export async function Main(game: Game) {
   const design = game.config.designSize;
 
   let isFirstClick = true;
-  let isBuilding = false;
-
-  const houseFloor: IFloorData[] = [];
-
-  type TextureKey = keyof typeof AssetsDB.texture;
 
   // bg
-  const framesBG: Texture[] = [];
-
-  for (let i = 0; i <= 65; i++) {
-    const key = `BG_${i.toString().padStart(5, "0")}` as TextureKey;
-    const id = AssetsDB.texture[key];
-    if (!id) continue;
-    framesBG.push(Texture.from(id));
-  }
-
-  const bg = new AnimatedSprite(framesBG);
+  const bg = AnimationService.animationsFromFrame("BG_", 65);
   bg.animationSpeed = 0.5;
   bg.loop = false;
 
@@ -94,16 +37,7 @@ export async function Main(game: Game) {
   bgLayer.addChild(bg);
 
   // bg front
-  const framesBGFront: Texture[] = [];
-
-  for (let i = 0; i <= 65; i++) {
-    const key = `BG2_${i.toString().padStart(5, "0")}` as TextureKey;
-    const id = AssetsDB.texture[key];
-    if (!id) continue;
-    framesBGFront.push(Texture.from(id));
-  }
-
-  const bgFront = new AnimatedSprite(framesBGFront);
+  const bgFront = AnimationService.animationsFromFrame("BG2_", 65);
   bgFront.animationSpeed = 0.3;
   bgFront.loop = false;
 
@@ -152,105 +86,12 @@ export async function Main(game: Game) {
   buttonsContainer.position.set(design.x / 2, design.y - navHeight / 2);
 
   // Дом
-  const houseContainer = new Container();
-  bgLayer.addChild(houseContainer);
-  houseContainer.zIndex = 1;
-  houseContainer.position.set(design.x / 2, design.y * 1.11);
-
-  let currentHeight = 0;
-  let lastFloorContainer: Container | null = null;
-  let lastSpriteTree: Sprite | null = null;
-
-  function createHouse(type: TypeFloor) {
-    if (isBuilding) return;
-    isBuilding = true;
-
-    const floorContainer = new Container(); // 👈 ОБЩИЙ контейнер
-    const floor = Sprite.from(AssetsDB.texture[type]);
-    const config = FLOOR_CONFIG[type];
-
-    floor.anchor.set(0.5, 1);
-
-    const scale =
-      1 -
-      houseFloor.length *
-        config.scaleLoss *
-        (houseFloor.length === 7 ? 0.8 : 1) -
-      0.2;
-
-    floor.scale.set(scale);
-    floor.height = 0;
-
-    floor.position.set(0, 0);
-
-    floorContainer.position.set(0, -currentHeight);
-    floorContainer.addChild(floor);
-
-    if (lastSpriteTree && lastFloorContainer) {
-      lastFloorContainer.removeChild(lastSpriteTree);
-      console.log("LastSprite есть");
-    }
-
-    if (config.tree) {
-      const tree = Sprite.from(config.tree);
-
-      lastSpriteTree = tree;
-      lastFloorContainer = floorContainer;
-
-      let offsetY = 0;
-
-      tree.anchor.set(0.5, 1);
-      tree.scale.set(scale);
-
-      if (type === "Home3_00000_00645") {
-        offsetY = 10;
-        tree.scale.set(scale * 0.9);
-      } else if (type === "house_4_00224") offsetY = -5;
-
-      tree.position.set(0, offsetY);
-      tree.height = 0;
-
-      floorContainer.addChild(tree);
-
-      gsap.to(tree, {
-        height: floor.texture.orig.height * scale,
-        duration: 1,
-        ease: "power2.inOut",
-      });
-    }
-
-    houseContainer.addChild(floorContainer);
-
-    const realHeight = floor.texture.orig.height * scale;
-
-    gsap.to(floor, {
-      height: realHeight,
-      duration: 1,
-      ease: "power2.inOut",
-      onComplete: () => {
-        isBuilding = false;
-      },
-    });
-
-    currentHeight += realHeight;
-    currentHeight -=
-      realHeight * config.offsetY * (houseFloor.length > 5 ? 1.028 : 1);
-
-    houseFloor.push({
-      id: houseFloor.length,
-      height: realHeight,
-      width: floor.width,
-      type,
-    });
-  }
-
-  function getNextType(): TypeFloor {
-    return FLOOR_ORDER[houseFloor.length] ?? "house_500000";
-  }
+  const house = new House(bgLayer, design);
 
   // Первый этаж
-  createHouse(getNextType());
+  house.createHouse();
 
+  //Button
   const buttonCashOut = new Container();
   const bgCashOut = Sprite.from(
     AssetsDB.texture.CASH_OUT_button_00000_00000_00000,
