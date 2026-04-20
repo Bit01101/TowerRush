@@ -8,26 +8,27 @@ import { AnimPulseIn, Play } from "../../plugins/Utils/Animations.ts";
 import gsap from "gsap";
 import { AnimationService } from "../utilities/animations/animation.ts";
 import { House } from "../components/house.ts";
+import { UIScreen } from "../components/uiScreen.ts";
 
 export async function Main(game: Game) {
   await AssetsBase64.loadAll();
 
+  const design = game.config.designSize;
+
   const root = new Container();
   game.app.stage.addChild(root);
-
   const worldContainer = new Container();
   const bgLayer = new Container();
-  const uiLayer = new Container();
 
-  root.addChild(worldContainer, uiLayer);
+  root.addChild(worldContainer);
   worldContainer.addChild(bgLayer);
-
-  const design = game.config.designSize;
 
   let isFirstClick = true;
 
+  let scoreEUR = 40.0;
+
   // bg
-  const bg = AnimationService.animationsFromFrame("BG_", 65);
+  const bg = AnimationService.animationsFromFrame("BG_", 0, 65);
   bg.animationSpeed = 0.5;
   bg.loop = false;
 
@@ -37,7 +38,7 @@ export async function Main(game: Game) {
   bgLayer.addChild(bg);
 
   // bg front
-  const bgFront = AnimationService.animationsFromFrame("BG2_", 65);
+  const bgFront = AnimationService.animationsFromFrame("BG2_", 0, 65);
   bgFront.animationSpeed = 0.3;
   bgFront.loop = false;
 
@@ -47,17 +48,6 @@ export async function Main(game: Game) {
   bgFront.zIndex = 2;
 
   bgLayer.addChild(bgFront);
-
-  // ui
-  const navHeight = 200;
-
-  const nav = Sprite.from(AssetsDB.texture.UI_bcgr_00000);
-  uiLayer.addChild(nav);
-
-  nav.width = design.x;
-  nav.height = navHeight;
-  nav.anchor.set(0.5);
-  nav.position.set(design.x / 2, design.y - navHeight / 2);
 
   const sun = Sprite.from(AssetsDB.texture.glow_00000);
   bgLayer.addChild(sun);
@@ -69,27 +59,15 @@ export async function Main(game: Game) {
     sun.rotation += 0.005 * ticker.deltaTime;
   });
 
-  const logo = Sprite.from(AssetsDB.texture.logo_00379_00303);
-  uiLayer.addChild(logo);
-  logo.anchor.set(1, 0);
-  logo.scale.set(0.35);
-  logo.position.set(design.x, 0);
-
-  const multiplierText = Sprite.from(AssetsDB.texture.MULTIPLIER_00110);
-  uiLayer.addChild(multiplierText);
-  multiplierText.anchor.set(1, 0.5);
-  multiplierText.position.set(design.x, design.y / 3);
-  multiplierText.scale = 0.65;
-
-  const buttonsContainer = new Container();
-  uiLayer.addChild(buttonsContainer);
-  buttonsContainer.position.set(design.x / 2, design.y - navHeight / 2);
-
+  // ui
+  const uiScreen = new UIScreen(root, design);
   // Дом
   const house = new House(bgLayer, design);
 
   // Первый этаж
   house.createHouse();
+
+  //Перенести логику по компонентам
 
   //Button
   const buttonCashOut = new Container();
@@ -97,9 +75,13 @@ export async function Main(game: Game) {
     AssetsDB.texture.CASH_OUT_button_00000_00000_00000,
   );
   const textCashOut = Sprite.from(AssetsDB.texture.CASH_OUT_00000_00000);
-
   bgCashOut.anchor.set(0.5);
+
   textCashOut.anchor.set(0.5);
+  uiScreen.createCashText(bgCashOut, bgCashOut.height * 0.1);
+
+  textCashOut.position.set(0, -bgCashOut.height * 0.05);
+
   buttonCashOut.addChild(bgCashOut, textCashOut);
 
   const buttonFeed = new Container();
@@ -116,7 +98,7 @@ export async function Main(game: Game) {
   const scaleFeed = BUTTON_WIDTH / bgFeed.texture.orig.width;
 
   bgCashOut.scale.set(scaleCash);
-  textCashOut.scale.set(scaleCash);
+  textCashOut.scale.set(scaleCash / 1.5);
   bgFeed.scale.set(scaleFeed);
   textFeed.scale.set(scaleFeed);
 
@@ -125,13 +107,13 @@ export async function Main(game: Game) {
 
   buttons.forEach((btn, i) => {
     btn.position.set((i - (buttons.length - 1) / 2) * spacing, 0);
-    buttonsContainer.addChild(btn);
+    uiScreen.getButtonContainer().addChild(btn);
   });
 
   OnClick(buttonCashOut, Play(AnimPulseIn(buttonCashOut, 0.9, 0.5)));
 
   OnClick(buttonFeed, () => {
-    if (isBuilding) return;
+    if (house.getIsBuildingStatus()) return;
 
     Play(AnimPulseIn(buttonFeed, 0.9, 0.5));
 
@@ -140,15 +122,19 @@ export async function Main(game: Game) {
 
     // выплывание
     setTimeout(() => {
-      gsap.to(houseContainer, {
+      gsap.to(house.getHouseContainer(), {
         y: design.y * 0.84,
         duration: 1,
         ease: "power2.out",
       });
     }, 500);
 
-    // строительство только со 2-го клика
-    if (!isFirstClick && houseFloor.length < 8) createHouse(getNextType());
+    if (!isFirstClick && house.getHouseFloor().length < 8) {
+      house.createHouse();
+      const newScore = uiScreen.createPersentScorePanel(design, scoreEUR);
+      uiScreen.animateScore(scoreEUR, newScore);
+      scoreEUR = newScore;
+    }
 
     isFirstClick = false;
   });

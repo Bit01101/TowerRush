@@ -3,6 +3,7 @@ import { TypeFloor } from "../type/typeFloor";
 import { TypeTree } from "../type/typeTree";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import { IFloorData } from "../interfase/iFloorData";
+import gsap from "gsap";
 
 export class House {
   currentHeight = 0;
@@ -45,7 +46,7 @@ export class House {
   ) {
     this.parent.addChild(this.houseContainer);
     this.houseContainer.zIndex = 1;
-    this.houseContainer.position.set(pos.x / 2, pos.y * 1.11);
+    this.houseContainer.position.set(pos.x / 2, pos.y * 1.05);
   }
 
   public createHouse() {
@@ -132,7 +133,19 @@ export class House {
     });
   }
 
+  //Последних два этажа защитать, как за один
+
   public getNextType(): TypeFloor {
     return this.FLOOR_ORDER[this.houseFloor.length] ?? "house_500000";
+  }
+
+  public getHouseContainer(): Container {
+    return this.houseContainer;
+  }
+  public getIsBuildingStatus(): boolean {
+    return this.isBuilding;
+  }
+  public getHouseFloor(): IFloorData[] {
+    return this.houseFloor;
   }
 }

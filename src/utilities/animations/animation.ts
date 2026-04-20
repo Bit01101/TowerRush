@@ -4,14 +4,24 @@ import { AssetsDB } from "../../../plugins/Assets/_DATA_BASE/AssetsDB";
 type TextureKey = keyof typeof AssetsDB.texture;
 
 export class AnimationService {
-  static animationsFromFrame(name: string, step: number): AnimatedSprite {
-    const framesBG: Texture[] = [];
-    for (let i = 0; i <= step; i++) {
+  static animationsFromFrame(
+    name: string,
+    start: number,
+    end: number,
+  ): AnimatedSprite {
+    const frames: Texture[] = [];
+
+    for (let i = start; i <= end; i++) {
       const key = `${name}${i.toString().padStart(5, "0")}` as TextureKey;
       const id = AssetsDB.texture[key];
-      if (!id) continue;
-      framesBG.push(Texture.from(id));
+
+      if (!id) {
+        throw new Error(`Missing texture: ${key}`);
+      }
+
+      frames.push(Texture.from(id));
     }
-    return new AnimatedSprite(framesBG);
+
+    return new AnimatedSprite(frames);
   }
 }
