@@ -2,19 +2,20 @@ import { AnimatedSprite, Container, HTMLText, Sprite } from "pixi.js";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import gsap from "gsap";
 import { RapidGrowth } from "./rapidGrowth";
-import { Cover } from "../../plugins/Utils/Components/Cover";
 import { AnimationService } from "../utilities/animations/animation";
+import { UI, WidgetRoot } from "../../plugins/Game/UI";
 
 type Viewport = { x: number; y: number };
+type CursorMode = "feed" | "cash" | "win" | null;
 
 export class UIScreen {
+  ui: UI;
   navHeight = 200;
-  uiLayer = new Container();
   buttonsContainer = new Container();
   private scoreText!: HTMLText;
-  private cover: Cover;
   private rapid!: RapidGrowth;
   private rapidShown = false;
+  private activeCursorMode: CursorMode = null;
 
   borderList: Container[] = [];
 
@@ -80,52 +81,50 @@ export class UIScreen {
   };
 
   constructor(
-    parent: Container,
+    ui: UI,
     private pos: Viewport,
   ) {
-    parent.addChild(this.uiLayer);
-
-    this.cover = new Cover();
-    parent.addChild(this.cover);
+    this.ui = ui;
 
     this.rapid = new RapidGrowth();
 
     this.createNav(pos);
-    this.createLogo(pos);
-    this.createModeText(pos);
-    this.createButtonContainer(pos);
-
-    this.uiLayer.width = parent.width;
-    this.uiLayer.height = parent.height;
+    this.createLogo();
+    this.createModeText();
+    this.createButtonContainer();
   }
 
   private createNav(pos: { x: number; y: number }) {
     const nav = Sprite.from(AssetsDB.texture.UI_bcgr_00000);
 
-    this.uiLayer.addChild(nav);
+    this.ui.add(nav, WidgetRoot.BOTTOM);
+
+    nav.anchor.set(0.5);
 
     nav.width = pos.x;
-    nav.height = 100;
-
-    nav.anchor.set(0.5, 1);
-    nav.position.set(pos.x / 2, pos.y);
+    nav.height = this.navHeight;
   }
 
-  private createLogo(pos: { x: number; y: number }) {
+  private createLogo() {
     const logo = Sprite.from(AssetsDB.texture.logo_00379_00303);
-    this.uiLayer.addChild(logo);
-    logo.anchor.set(1, 0);
+
+    logo.anchor.set(0.5);
     logo.scale.set(0.35);
-    logo.position.set(pos.x, 0);
+
+    this.ui.add(logo, WidgetRoot.TOP_RIGHT, { x: -5, y: 5 });
+    console.log(logo.getBounds());
+    console.log(logo.position);
   }
 
-  private createModeText(pos: { x: number; y: number }) {
+  private createModeText() {
     this.currentMode = Sprite.from(
       this.resultMultiply[this.borderList.length]?.mode ?? "MULTIPLIER_00110",
     );
-    this.uiLayer.addChild(this.currentMode);
-    this.currentMode.anchor.set(1, 0.5);
-    this.currentMode.position.set(pos.x, pos.y / 3);
+    this.currentMode.anchor.set(0.5);
+    this.ui.add(this.currentMode, WidgetRoot.RIGHT, {
+      x: 0,
+      y: this.pos.y / 3 - this.pos.y / 2,
+    });
     this.currentMode.scale = 0.65;
   }
 
@@ -145,7 +144,7 @@ export class UIScreen {
     containerScore.addChild(border);
     containerScore.addChild(textScore);
     containerScore.addChild(textScoreCenter);
-    this.uiLayer.addChild(containerScore);
+    this.ui.add(containerScore, WidgetRoot.RIGHT);
 
     border.anchor.set(0.5);
     border.position.set(0);
@@ -235,19 +234,18 @@ export class UIScreen {
     const mode = config.mode;
 
     if (mode === "VOID_MODE_00280" && !this.rapidShown) {
-      this.rapid.showPanelRapid(this.uiLayer, this.pos, 2500);
+      this.rapid.showPanelRapid(this.ui.container, this.pos, 2500);
       this.rapidShown = true;
     }
 
     this.currentMode.texture = Sprite.from(AssetsDB.texture[mode]).texture;
   }
 
-  private createButtonContainer(pos: { x: number; y: number }) {
-    this.uiLayer.addChild(this.buttonsContainer);
-    this.buttonsContainer.position.set(
-      pos.x / 2,
-      pos.y - this.getNavHeight() / 2,
-    );
+  private createButtonContainer() {
+    this.ui.add(this.buttonsContainer, WidgetRoot.BOTTOM, {
+      x: 0,
+      y: this.navHeight / 4,
+    });
   }
 
   public createButtons() {
@@ -339,26 +337,39 @@ export class UIScreen {
     return value.toLocaleString("fr-FR").replace(",", ".");
   }
 
-  public cursorTutorialForFeedButtonShow(buttonFeed: Container) {
-    if (!this.cursor.parent) buttonFeed.addChild(this.cursor);
-    this.cursor.scale.set(0.5);
-    this.cursor.anchor.set(0, 0);
-    this.cursor.position.set(this.cursor.width / 2, 0);
-    this.cursor.play();
-  }
-
-  public cursorTutorialForOutCashButtonShow(buttonCashOut: Container) {
-    if (!this.cursor.parent) buttonCashOut.addChild(this.cursor);
-    this.cursor.scale.set(0.5);
-    this.cursor.anchor.set(0, 0);
-    this.cursor.position.set(this.cursor.width / 2, 0);
-    this.cursor.play();
-  }
-
-  public cursorTutorialDisable(buttonFeed: Container) {
+  private showCursor(target: Container, mode: CursorMode) {
     if (this.cursor.parent) {
       this.cursor.stop();
-      buttonFeed.removeChild(this.cursor);
+      this.cursor.parent.removeChild(this.cursor);
     }
+
+    this.activeCursorMode = mode;
+
+    target.addChild(this.cursor);
+
+    this.cursor.scale.set(0.5);
+    this.cursor.anchor.set(0, 0);
+    this.cursor.position.set(this.cursor.width / 2, 0);
+
+    this.cursor.play();
+  }
+  private hideCursor() {
+    if (this.cursor.parent) {
+      this.cursor.stop();
+      this.cursor.parent.removeChild(this.cursor);
+    }
+    this.activeCursorMode = null;
+  }
+
+  public cursorFeedShow(button: Container) {
+    this.showCursor(button, "feed");
+  }
+
+  public cursorCashOutShow(button: Container) {
+    this.showCursor(button, "cash");
+  }
+
+  public cursorWinShow(panel: Container) {
+    this.showCursor(panel, "win");
   }
 }

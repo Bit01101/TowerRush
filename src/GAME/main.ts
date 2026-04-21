@@ -12,6 +12,8 @@ import { UIScreen } from "../components/uiScreen.ts";
 import { debugBounds } from "../utilities/debug/debugBounds.ts";
 import { Resizer } from "../../plugins/Game/Resizer.ts";
 import { Zoom } from "../utilities/zoom/zoom.ts";
+import { UI } from "../../plugins/Game/UI.ts";
+import { WinPanel } from "../components/winPanel.ts";
 
 export async function Main(game: Game) {
   await AssetsBase64.loadAll();
@@ -19,7 +21,9 @@ export async function Main(game: Game) {
   const design = game.config.designSize;
 
   const root = new Container();
-  game.app.stage.addChild(root);
+  const ui = new UI(game);
+
+  game.app.stage.addChild(root, ui.container);
 
   const resizer = new Resizer(game.app, design);
 
@@ -44,16 +48,9 @@ export async function Main(game: Game) {
   bg.animationSpeed = 0.5;
   bg.loop = false;
 
-  const textureWidthBG = bg.texture.width;
-  const textureHeightBG = bg.texture.height;
-  const ratioBG = textureHeightBG / textureWidthBG;
-
+  bg.position.set(0, 0);
   bg.width = adaptive.x;
-  bg.height = adaptive.x * ratioBG;
-
-  bg.anchor.set(0, 1);
-  bg.position.set(0, adaptive.y - 200);
-
+  bg.height = adaptive.y - 200;
   bgLayer.addChild(bg);
 
   // bg front
@@ -61,34 +58,17 @@ export async function Main(game: Game) {
   bgFront.animationSpeed = 0.3;
   bgFront.loop = false;
 
-  const textureWidthBGFront = bgFront.texture.width;
-  const textureHeightBGFront = bgFront.texture.height;
-  const ratioBGFront = textureHeightBGFront / textureWidthBGFront;
-
-  bgFront.position.set(0);
-
+  bgFront.position.set(0, 0);
   bgFront.width = adaptive.x;
-  bgFront.height = adaptive.y * ratioBGFront;
-
-  bgFront.anchor.set(0, 1);
-  bgFront.position.set(0, adaptive.y - 200);
-
+  bgFront.height = adaptive.y - 200;
   bgFront.zIndex = 2;
 
   bgLayer.addChild(bgFront);
 
   const sun = Sprite.from(AssetsDB.texture.glow_00000);
-  const sunTextureWidth = sun.texture.width;
-  const sunTextureHeight = sun.texture.height;
-
-  const ratioSun = sunTextureHeight / sunTextureWidth;
-
-  sun.width = sunTextureWidth;
-  sun.height = sunTextureHeight * ratioSun;
-
   bgLayer.addChild(sun);
   sun.anchor.set(0.5);
-  sun.scale.set(ratioSun);
+  sun.scale.set(0.8);
   sun.position.set(adaptive.x / 2, adaptive.y / 1.75);
 
   game.app.ticker.add((ticker) => {
@@ -96,9 +76,11 @@ export async function Main(game: Game) {
   });
 
   // ui
-  const uiScreen = new UIScreen(root, adaptive);
+  const uiScreen = new UIScreen(ui, adaptive);
   // Дом
   const house = new House(bgLayer, adaptive);
+  // win panel
+  const winPanel = new WinPanel(ui, adaptive, uiScreen);
 
   // Первый этаж
   house.createHouse();
@@ -106,7 +88,15 @@ export async function Main(game: Game) {
   //Button
   const { buttonCashOut, buttonFeed } = uiScreen.createButtons();
 
-  OnClick(buttonCashOut, Play(AnimPulseIn(buttonCashOut, 0.9, 0.5)));
+  let OneClick = false;
+
+  OnClick(buttonCashOut, () => {
+    if (house.getHouseFloor().length < 8 || OneClick) return;
+    OneClick = true;
+    Play(AnimPulseIn(buttonCashOut, 0.9, 0.5));
+    winPanel.createWinPanel();
+    uiScreen.cursorCashOutDisable(buttonCashOut);
+  });
 
   let clickProccess = false;
 
@@ -115,7 +105,7 @@ export async function Main(game: Game) {
   OnClick(buttonFeed, () => {
     if (house.getIsBuildingStatus() || clickProccess) return;
 
-    uiScreen.cursorTutorialDisable(buttonFeed);
+    uiScreen.cursorFeedDisable(buttonFeed);
     clickProccess = true;
     const floors = house.getHouseFloor().length;
     const isDoubleBuild = floors === 5;
@@ -143,7 +133,7 @@ export async function Main(game: Game) {
 
     if (house.getHouseFloor().length > 7) return;
 
-    Zoom.zoom(worldContainer, house.getHouseFloor().length);
+    // Zoom.zoom(worldContainer, house.getHouseFloor().length);
 
     const newScore = uiScreen.createPersentScorePanel(adaptive, scoreEUR);
     uiScreen.animateScore(scoreEUR, newScore);
