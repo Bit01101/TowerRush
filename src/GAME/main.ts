@@ -67,8 +67,6 @@ export async function Main(game: Game) {
   // Первый этаж
   house.createHouse();
 
-  //Перенести логику по компонентам
-
   //Button
   const buttonCashOut = new Container();
   const bgCashOut = Sprite.from(
@@ -112,28 +110,47 @@ export async function Main(game: Game) {
 
   OnClick(buttonCashOut, Play(AnimPulseIn(buttonCashOut, 0.9, 0.5)));
 
+  let clickProccess = false;
+
   OnClick(buttonFeed, () => {
-    if (house.getIsBuildingStatus()) return;
+    if (house.getIsBuildingStatus() || clickProccess) return;
+
+    clickProccess = true;
+    const floors = house.getHouseFloor().length;
+    const isDoubleBuild = floors === 5;
 
     Play(AnimPulseIn(buttonFeed, 0.9, 0.5));
 
     bg.play();
     bgFront.play();
 
-    // выплывание
     setTimeout(() => {
       gsap.to(house.getHouseContainer(), {
         y: design.y * 0.84,
         duration: 1,
         ease: "power2.out",
+        onComplete: () => {
+          bgLayer.scale = game.container.width;
+          console.log(`game:`, game);
+          clickProccess = false;
+        },
       });
     }, 500);
 
-    if (!isFirstClick && house.getHouseFloor().length < 8) {
+    if (house.getHouseFloor().length > 7) return;
+
+    const newScore = uiScreen.createPersentScorePanel(design, scoreEUR);
+    uiScreen.animateScore(scoreEUR, newScore);
+    scoreEUR = newScore;
+
+    if (!isFirstClick) {
       house.createHouse();
-      const newScore = uiScreen.createPersentScorePanel(design, scoreEUR);
-      uiScreen.animateScore(scoreEUR, newScore);
-      scoreEUR = newScore;
+
+      if (isDoubleBuild) {
+        setTimeout(() => {
+          house.createHouse();
+        }, 1000);
+      }
     }
 
     isFirstClick = false;
