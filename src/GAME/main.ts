@@ -1,7 +1,6 @@
 // Main.ts
 
 import { Container, Sprite } from "pixi.js";
-import gsap from "gsap";
 import { Game } from "../../plugins/Game/Game";
 import { AssetsBase64 } from "../../plugins/Assets/AssetsBase64";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
@@ -40,16 +39,22 @@ export async function Main(game: Game) {
   worldContainer.addChild(bgLayer);
 
   const bg = AnimationService.animationsFromFrame("BG_", 0, 65);
+  const ratioBg = bg.texture.height / bg.texture.width;
   bg.animationSpeed = 0.5;
   bg.loop = false;
   bg.width = adaptive.x;
-  bg.height = adaptive.y - 200;
+  bg.height = adaptive.x * ratioBg;
+  bg.anchor.set(0, 1);
+  bg.position.y = adaptive.y - 200;
 
   const bgFront = AnimationService.animationsFromFrame("BG2_", 0, 65);
+  const ratioBgFront = bgFront.texture.height / bgFront.texture.width;
   bgFront.animationSpeed = 0.3;
   bgFront.loop = false;
   bgFront.width = adaptive.x;
-  bgFront.height = adaptive.y - 200;
+  bgFront.height = adaptive.x * ratioBgFront;
+  bgFront.anchor.set(0, 1);
+  bgFront.position.y = adaptive.y - 200;
   bgFront.zIndex = 2;
 
   bgLayer.addChild(bg, bgFront);
@@ -80,7 +85,8 @@ export async function Main(game: Game) {
     winPanel,
     adaptive,
     bg,
-    bgFront, // 👈 добавили
+    bgFront,
+    worldContainer,
   });
 
   controller.bind(buttonFeed, buttonCashOut);

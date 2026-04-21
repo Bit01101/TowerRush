@@ -5,6 +5,7 @@ import { AnimPulseIn, Play } from "../../plugins/Utils/Animations";
 import { UIScreen } from "../components/uiScreen";
 import { House } from "../components/house";
 import { WinPanel } from "../components/winPanel";
+import { Zoom } from "../utilities/zoom/zoom";
 
 type ButtonControllerDeps = {
   ui: UIScreen;
@@ -13,6 +14,7 @@ type ButtonControllerDeps = {
   adaptive: { x: number; y: number };
   bg: AnimatedSprite;
   bgFront: AnimatedSprite;
+  worldContainer: Container;
 };
 
 export class ButtonController {
@@ -50,7 +52,9 @@ export class ButtonController {
       const isDoubleBuild = floors === 5;
 
       Play(AnimPulseIn(buttonFeed, 0.9, 0.5));
+      const topY = this.deps.house.getTopY();
 
+      Zoom.followY(this.deps.worldContainer, topY, this.deps.adaptive.y);
       setTimeout(() => {
         gsap.to(this.deps.house.getHouseContainer(), {
           y: this.deps.adaptive.y * 0.84,

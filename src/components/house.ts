@@ -12,6 +12,7 @@ export class House {
   isBuilding = false;
   houseFloor: IFloorData[] = [];
   houseContainer = new Container();
+  ratio = 1;
 
   FLOOR_CONFIG: Record<
     TypeFloor,
@@ -47,6 +48,7 @@ export class House {
     this.parent.addChild(this.houseContainer);
     this.houseContainer.zIndex = 1;
     this.houseContainer.position.set(pos.x / 2, pos.y * 1.05);
+    this.ratio = parent.height / parent.width;
   }
 
   public createHouse() {
@@ -67,7 +69,7 @@ export class House {
         (this.houseFloor.length === 7 ? 0.8 : 1) -
       0.2;
 
-    floor.scale.set(scale);
+    floor.scale.set(scale * this.ratio);
     floor.height = 0;
 
     floor.position.set(0, 0);
@@ -102,7 +104,7 @@ export class House {
       floorContainer.addChild(tree);
 
       gsap.to(tree, {
-        height: floor.texture.orig.height * scale,
+        height: floor.texture.orig.height * scale * this.ratio,
         duration: 1,
         ease: "power2.inOut",
       });
@@ -110,7 +112,7 @@ export class House {
 
     this.houseContainer.addChild(floorContainer);
 
-    const realHeight = floor.texture.orig.height * scale;
+    const realHeight = floor.texture.orig.height * scale * this.ratio;
 
     gsap.to(floor, {
       height: realHeight,
@@ -147,5 +149,8 @@ export class House {
   }
   public getHouseFloor(): IFloorData[] {
     return this.houseFloor;
+  }
+  public getTopY(): number {
+    return this.houseContainer.y - this.currentHeight;
   }
 }
