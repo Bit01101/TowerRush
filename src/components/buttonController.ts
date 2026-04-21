@@ -1,16 +1,103 @@
+import { AnimatedSprite, Container } from "pixi.js";
+import gsap from "gsap";
+import { OnClick } from "../../plugins/Utils/UIEvents";
+import { AnimPulseIn, Play } from "../../plugins/Utils/Animations";
+import { UIScreen } from "../components/uiScreen";
+import { House } from "../components/house";
+import { WinPanel } from "../components/winPanel";
+
 type ButtonControllerDeps = {
   ui: UIScreen;
   house: House;
   winPanel: WinPanel;
   adaptive: { x: number; y: number };
-  worldContainer: Container;
+  bg: AnimatedSprite;
+  bgFront: AnimatedSprite;
 };
 
-class ButtonController {
+export class ButtonController {
   private isFirstClick = true;
   private isFeedLocked = false;
   private isCashLocked = false;
+  private bgPlayed = false;
+
   private score = 40;
 
   constructor(private deps: ButtonControllerDeps) {}
+
+  bind(buttonFeed: Container, buttonCashOut: Container) {
+    this.bindFeed(buttonFeed, buttonCashOut);
+    this.bindCash(buttonCashOut);
+  }
+
+  private playBgIntro() {
+    if (this.bgPlayed) return;
+    this.bgPlayed = true;
+
+    this.deps.bg.play();
+    this.deps.bgFront.play();
+  }
+
+  private bindFeed(buttonFeed: Container, buttonCashOut: Container) {
+    OnClick(buttonFeed, () => {
+      if (this.isFeedLocked || this.deps.house.getIsBuildingStatus()) return;
+
+      this.isFeedLocked = true;
+
+      this.playBgIntro();
+
+      const floors = this.deps.house.getHouseFloor().length;
+      const isDoubleBuild = floors === 5;
+
+      Play(AnimPulseIn(buttonFeed, 0.9, 0.5));
+
+      setTimeout(() => {
+        gsap.to(this.deps.house.getHouseContainer(), {
+          y: this.deps.adaptive.y * 0.84,
+          duration: 1,
+          ease: "power2.out",
+          onComplete: () => {
+            this.isFeedLocked = false;
+
+            if (this.deps.house.getHouseFloor().length < 8)
+              this.deps.ui.cursorFeedShow(buttonFeed);
+            else this.deps.ui.cursorCashOutShow(buttonCashOut);
+          },
+        });
+      }, 500);
+
+      if (this.deps.house.getHouseFloor().length <= 7) {
+        this.deps.ui.cursorFeedDisable();
+        const newScore = this.deps.ui.createPersentScorePanel(
+          this.deps.adaptive,
+          this.score,
+        );
+
+        this.deps.ui.animateScore(this.score, newScore);
+        this.score = newScore;
+        if (!this.isFirstClick) {
+          this.deps.house.createHouse();
+
+          if (isDoubleBuild)
+            setTimeout(() => this.deps.house.createHouse(), 1000);
+        }
+      }
+
+      this.isFirstClick = false;
+    });
+  }
+
+  private bindCash(buttonCashOut: Container) {
+    OnClick(buttonCashOut, () => {
+      if (this.isCashLocked) return;
+      if (this.deps.house.getHouseFloor().length < 8) return;
+
+      this.isCashLocked = true;
+
+      Play(AnimPulseIn(buttonCashOut, 0.9, 0.5));
+
+      this.deps.winPanel.createWinPanel();
+      this.deps.ui.cursorCashOutDisable();
+    });
+  }
 }

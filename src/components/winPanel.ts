@@ -27,7 +27,8 @@ export class WinPanel {
       duration: 2,
       ease: "elastic.out",
     });
-    this.uiScreen.cursorWinPanel(this.winPanel);
+
+    this.uiScreen.cursorWinShow(this.winPanel);
 
     const spriteBG = Sprite.from(AssetsDB.texture.Big_win_Plach_00000);
     const spriteCity = Sprite.from(

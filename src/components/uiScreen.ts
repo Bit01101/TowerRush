@@ -372,4 +372,16 @@ export class UIScreen {
   public cursorWinShow(panel: Container) {
     this.showCursor(panel, "win");
   }
+
+  public cursorFeedDisable() {
+    this.hideCursor();
+  }
+
+  public cursorCashOutDisable() {
+    this.hideCursor();
+  }
+
+  public cursorWinDisable() {
+    this.hideCursor();
+  }
 }
