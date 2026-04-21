@@ -4,7 +4,6 @@ import gsap from "gsap";
 import { RapidGrowth } from "./rapidGrowth";
 import { Cover } from "../../plugins/Utils/Components/Cover";
 import { AnimationService } from "../utilities/animations/animation";
-import { debugBounds } from "../utilities/debug/debugBounds";
 
 type Viewport = { x: number; y: number };
 
@@ -16,7 +15,6 @@ export class UIScreen {
   private cover: Cover;
   private rapid!: RapidGrowth;
   private rapidShown = false;
-  private viewport: Viewport;
 
   borderList: Container[] = [];
 
@@ -81,9 +79,10 @@ export class UIScreen {
     },
   };
 
-  constructor(parent: Container, pos: Viewport) {
-    this.viewport = pos;
-
+  constructor(
+    parent: Container,
+    private pos: Viewport,
+  ) {
     parent.addChild(this.uiLayer);
 
     this.cover = new Cover();
@@ -98,18 +97,18 @@ export class UIScreen {
 
     this.uiLayer.width = parent.width;
     this.uiLayer.height = parent.height;
-
-    debugBounds(parent, this.uiLayer);
   }
 
   private createNav(pos: { x: number; y: number }) {
     const nav = Sprite.from(AssetsDB.texture.UI_bcgr_00000);
+
     this.uiLayer.addChild(nav);
 
     nav.width = pos.x;
-    nav.height = this.navHeight;
-    nav.anchor.set(0.5);
-    nav.position.set(pos.x / 2, pos.y - this.navHeight / 2);
+    nav.height = 100;
+
+    nav.anchor.set(0.5, 1);
+    nav.position.set(pos.x / 2, pos.y);
   }
 
   private createLogo(pos: { x: number; y: number }) {
@@ -236,7 +235,7 @@ export class UIScreen {
     const mode = config.mode;
 
     if (mode === "VOID_MODE_00280" && !this.rapidShown) {
-      this.rapid.showPanelRapid(this.uiLayer, this.viewport, 2500);
+      this.rapid.showPanelRapid(this.uiLayer, this.pos, 2500);
       this.rapidShown = true;
     }
 
@@ -249,6 +248,50 @@ export class UIScreen {
       pos.x / 2,
       pos.y - this.getNavHeight() / 2,
     );
+  }
+
+  public createButtons() {
+    const navWidth = this.pos.x;
+    const targetWidth = navWidth * 0.2;
+
+    const buttonCashOut = new Container();
+    const bgCashOut = Sprite.from(
+      AssetsDB.texture.CASH_OUT_button_00000_00000_00000,
+    );
+    const textCashOut = Sprite.from(AssetsDB.texture.CASH_OUT_00000_00000);
+
+    bgCashOut.anchor.set(0.5);
+    textCashOut.anchor.set(0.5);
+    textCashOut.scale.set(0.75);
+    textCashOut.position.y = bgCashOut.height * -0.1;
+
+    buttonCashOut.addChild(bgCashOut, textCashOut);
+
+    this.createCashText(bgCashOut, bgCashOut.height * 0.1);
+
+    const buttonFeed = new Container();
+    const bgFeed = Sprite.from(AssetsDB.texture.Goo_button_00000_00000_00000);
+    const textFeed = Sprite.from(AssetsDB.texture.Go_00000_00000_00000);
+
+    bgFeed.anchor.set(0.5);
+    textFeed.anchor.set(0.5);
+
+    buttonFeed.addChild(bgFeed, textFeed);
+
+    const scaleCash = targetWidth / bgCashOut.texture.orig.width;
+    const scaleFeed = targetWidth / bgFeed.texture.orig.width;
+
+    buttonCashOut.scale.set(Math.min(1, scaleCash));
+    buttonFeed.scale.set(Math.min(1, scaleFeed));
+
+    const spacing = navWidth * 0.25;
+
+    buttonCashOut.position.set(-spacing / 2, 0);
+    buttonFeed.position.set(spacing / 2, 0);
+
+    this.buttonsContainer.addChild(buttonCashOut, buttonFeed);
+
+    return { buttonCashOut, buttonFeed };
   }
 
   public getButtonContainer() {
@@ -296,8 +339,16 @@ export class UIScreen {
     return value.toLocaleString("fr-FR").replace(",", ".");
   }
 
-  public cursorTutorialShow(buttonFeed: Container) {
+  public cursorTutorialForFeedButtonShow(buttonFeed: Container) {
     if (!this.cursor.parent) buttonFeed.addChild(this.cursor);
+    this.cursor.scale.set(0.5);
+    this.cursor.anchor.set(0, 0);
+    this.cursor.position.set(this.cursor.width / 2, 0);
+    this.cursor.play();
+  }
+
+  public cursorTutorialForOutCashButtonShow(buttonCashOut: Container) {
+    if (!this.cursor.parent) buttonCashOut.addChild(this.cursor);
     this.cursor.scale.set(0.5);
     this.cursor.anchor.set(0, 0);
     this.cursor.position.set(this.cursor.width / 2, 0);

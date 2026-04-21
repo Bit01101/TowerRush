@@ -16,3 +16,30 @@ export function debugBounds(parent: Container, target: Container) {
 
   return update;
 }
+
+export function createScreenDebug(app: any, parent: any) {
+  const rect = new Graphics();
+  parent.addChild(rect);
+
+  function draw() {
+    const w = app.renderer.width;
+    const h = app.renderer.height;
+
+    rect.clear();
+
+    rect.rect(0, 0, w, h);
+    rect.stroke({ width: 2, color: 0xff0000 });
+
+    rect.fill({ color: 0xff0000, alpha: 0.05 });
+  }
+
+  draw();
+
+  app.ticker.add(() => {
+    draw();
+  });
+
+  window.addEventListener("resize", draw);
+
+  return rect;
+}

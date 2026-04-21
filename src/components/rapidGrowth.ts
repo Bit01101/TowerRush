@@ -26,6 +26,9 @@ export class RapidGrowth {
     this.bgRapid.position.set(centerX, centerY);
     this.rapidText.position.set(centerX, centerY);
 
+    this.bgRapid.width = vp.x;
+    this.bgRapid.height = vp.y;
+
     const scaleX = vp.x / this.bgRapid.width;
     const scaleY = vp.y / this.bgRapid.height;
 
