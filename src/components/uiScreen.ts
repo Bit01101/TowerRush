@@ -1,8 +1,10 @@
-import { Container, HTMLText, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, HTMLText, Sprite } from "pixi.js";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import gsap from "gsap";
 import { RapidGrowth } from "./rapidGrowth";
 import { Cover } from "../../plugins/Utils/Components/Cover";
+import { AnimationService } from "../utilities/animations/animation";
+import { debugBounds } from "../utilities/debug/debugBounds";
 
 type Viewport = { x: number; y: number };
 
@@ -19,6 +21,12 @@ export class UIScreen {
   borderList: Container[] = [];
 
   currentMode: Sprite = Sprite.from("MULTIPLIER_00110");
+
+  cursor: AnimatedSprite = AnimationService.animationsFromFrame(
+    "hand_bonus_",
+    0,
+    114,
+  );
 
   resultMultiply: Record<
     number,
@@ -87,6 +95,11 @@ export class UIScreen {
     this.createLogo(pos);
     this.createModeText(pos);
     this.createButtonContainer(pos);
+
+    this.uiLayer.width = parent.width;
+    this.uiLayer.height = parent.height;
+
+    debugBounds(parent, this.uiLayer);
   }
 
   private createNav(pos: { x: number; y: number }) {
@@ -281,5 +294,20 @@ export class UIScreen {
 
   formatNumber(value: number) {
     return value.toLocaleString("fr-FR").replace(",", ".");
+  }
+
+  public cursorTutorialShow(buttonFeed: Container) {
+    if (!this.cursor.parent) buttonFeed.addChild(this.cursor);
+    this.cursor.scale.set(0.5);
+    this.cursor.anchor.set(0, 0);
+    this.cursor.position.set(this.cursor.width / 2, 0);
+    this.cursor.play();
+  }
+
+  public cursorTutorialDisable(buttonFeed: Container) {
+    if (this.cursor.parent) {
+      this.cursor.stop();
+      buttonFeed.removeChild(this.cursor);
+    }
   }
 }

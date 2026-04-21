@@ -9,6 +9,7 @@ import gsap from "gsap";
 import { AnimationService } from "../utilities/animations/animation.ts";
 import { House } from "../components/house.ts";
 import { UIScreen } from "../components/uiScreen.ts";
+import { debugBounds } from "../utilities/debug/debugBounds.ts";
 
 export async function Main(game: Game) {
   await AssetsBase64.loadAll();
@@ -22,10 +23,17 @@ export async function Main(game: Game) {
 
   root.addChild(worldContainer);
   worldContainer.addChild(bgLayer);
+  console.log(root.getBounds());
+  console.log(window.innerWidth);
+  console.log(window.innerHeight);
 
+  game.app.renderer.resize(window.innerWidth, window.innerHeight);
+  root.width = window.innerWidth;
   let isFirstClick = true;
 
   let scoreEUR = 40.0;
+
+  debugBounds(root, root);
 
   // bg
   const bg = AnimationService.animationsFromFrame("BG_", 0, 65);
@@ -115,6 +123,7 @@ export async function Main(game: Game) {
   OnClick(buttonFeed, () => {
     if (house.getIsBuildingStatus() || clickProccess) return;
 
+    uiScreen.cursorTutorialDisable(buttonFeed);
     clickProccess = true;
     const floors = house.getHouseFloor().length;
     const isDoubleBuild = floors === 5;
@@ -133,6 +142,7 @@ export async function Main(game: Game) {
           bgLayer.scale = game.container.width;
           console.log(`game:`, game);
           clickProccess = false;
+          uiScreen.cursorTutorialShow(buttonFeed);
         },
       });
     }, 500);
