@@ -5,7 +5,8 @@ import { AnimPulseIn, Play } from "../../plugins/Utils/Animations";
 import { UIScreen } from "../components/uiScreen";
 import { House } from "../components/house";
 import { WinPanel } from "../components/winPanel";
-import { Zoom } from "../utilities/zoom/zoom";
+import { sound } from "@pixi/sound";
+import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 
 type ButtonControllerDeps = {
   ui: UIScreen;
@@ -42,6 +43,7 @@ export class ButtonController {
 
   private bindFeed(buttonFeed: Container, buttonCashOut: Container) {
     OnClick(buttonFeed, () => {
+      this.getButtonClickSound();
       if (this.isFeedLocked || this.deps.house.getIsBuildingStatus()) return;
 
       this.isFeedLocked = true;
@@ -52,9 +54,7 @@ export class ButtonController {
       const isDoubleBuild = floors === 5;
 
       Play(AnimPulseIn(buttonFeed, 0.9, 0.5));
-      const topY = this.deps.house.getTopY();
 
-      Zoom.followY(this.deps.worldContainer, topY, this.deps.adaptive.y);
       setTimeout(() => {
         gsap.to(this.deps.house.getHouseContainer(), {
           y: this.deps.adaptive.y * 0.84,
@@ -71,6 +71,7 @@ export class ButtonController {
       }, 500);
 
       if (this.deps.house.getHouseFloor().length <= 7) {
+        this.deps.house.getSoundBuild();
         this.deps.ui.cursorFeedDisable();
         const newScore = this.deps.ui.createPersentScorePanel(
           this.deps.adaptive,
@@ -79,6 +80,8 @@ export class ButtonController {
 
         this.deps.ui.animateScore(this.score, newScore);
         this.score = newScore;
+
+        this.getSoundScore();
         if (!this.isFirstClick) {
           this.deps.house.createHouse();
 
@@ -93,15 +96,23 @@ export class ButtonController {
 
   private bindCash(buttonCashOut: Container) {
     OnClick(buttonCashOut, () => {
+      this.deps.ui.cursorCashOutDisable();
       if (this.isCashLocked) return;
       if (this.deps.house.getHouseFloor().length < 8) return;
 
       this.isCashLocked = true;
-
+      this.getSoundtCashOut();
       Play(AnimPulseIn(buttonCashOut, 0.9, 0.5));
-
       this.deps.winPanel.createWinPanel();
-      this.deps.ui.cursorCashOutDisable();
     });
+  }
+  private getButtonClickSound() {
+    sound.play(AssetsDB.audio.CLICK);
+  }
+  public getSoundScore() {
+    sound.play(AssetsDB.audio.buy_coins_game);
+  }
+  public getSoundtCashOut() {
+    sound.play(AssetsDB.audio.common_win_bet);
   }
 }

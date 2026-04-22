@@ -1,5 +1,3 @@
-// Main.ts
-
 import { Container, Sprite } from "pixi.js";
 import { Game } from "../../plugins/Game/Game";
 import { AssetsBase64 } from "../../plugins/Assets/AssetsBase64";
@@ -12,9 +10,22 @@ import { UIScreen } from "../components/uiScreen";
 import { House } from "../components/house";
 import { WinPanel } from "../components/winPanel";
 import { ButtonController } from "../components/buttonController";
+import { sound } from "@pixi/sound";
+import { Localize } from "../utilities/localize";
+import { LocalKey } from "../BUILD/Localization";
 
 export async function Main(game: Game) {
   await AssetsBase64.loadAll();
+
+  if (!sound.exists("desert_winds"))
+    sound.add("desert_winds", "assets/Audio/desert_winds.mp3");
+
+  const localize = new Localize();
+
+  sound.play("desert_winds", {
+    loop: true,
+    volume: 1,
+  });
 
   const design = game.config.designSize;
 
@@ -37,6 +48,9 @@ export async function Main(game: Game) {
 
   root.addChild(worldContainer);
   worldContainer.addChild(bgLayer);
+
+  worldContainer.pivot.set(adaptive.x / 2, adaptive.y / 2);
+  worldContainer.position.set(adaptive.x / 2, adaptive.y / 2);
 
   const bg = AnimationService.animationsFromFrame("BG_", 0, 65);
   const ratioBg = bg.texture.height / bg.texture.width;
@@ -70,13 +84,11 @@ export async function Main(game: Game) {
     sun.rotation += 0.005 * t.deltaTime;
   });
 
-  // ---------------- UI ----------------
   const uiScreen = new UIScreen(ui, adaptive);
   const house = new House(bgLayer, adaptive);
   const winPanel = new WinPanel(ui, adaptive, uiScreen);
 
   house.createHouse();
-
   const { buttonCashOut, buttonFeed } = uiScreen.createButtons();
 
   const controller = new ButtonController({

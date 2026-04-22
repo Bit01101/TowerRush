@@ -4,6 +4,7 @@ import { TypeTree } from "../type/typeTree";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import { IFloorData } from "../interfase/iFloorData";
 import gsap from "gsap";
+import { sound } from "@pixi/sound";
 
 export class House {
   currentHeight = 0;
@@ -47,13 +48,13 @@ export class House {
   ) {
     this.parent.addChild(this.houseContainer);
     this.houseContainer.zIndex = 1;
-    this.houseContainer.position.set(pos.x / 2, pos.y * 1.05);
+    this.houseContainer.position.set(pos.x / 2, pos.y * 1.25);
     this.ratio = parent.height / parent.width;
   }
 
-  public createHouse() {
+  public createHouse(): number {
     const type = this.getNextType();
-    if (this.isBuilding) return;
+    if (this.isBuilding) return 0;
     this.isBuilding = true;
 
     const floorContainer = new Container();
@@ -67,7 +68,7 @@ export class House {
       this.houseFloor.length *
         config.scaleLoss *
         (this.houseFloor.length === 7 ? 0.8 : 1) -
-      0.2;
+      0.1;
 
     floor.scale.set(scale * this.ratio);
     floor.height = 0;
@@ -77,10 +78,8 @@ export class House {
     floorContainer.position.set(0, -this.currentHeight);
     floorContainer.addChild(floor);
 
-    if (this.lastSpriteTree && this.lastFloorContainer) {
+    if (this.lastSpriteTree && this.lastFloorContainer)
       this.lastFloorContainer.removeChild(this.lastSpriteTree);
-      console.log("LastSprite есть");
-    }
 
     if (config.tree) {
       const tree = Sprite.from(config.tree);
@@ -98,7 +97,7 @@ export class House {
         tree.scale.set(scale * 0.9);
       } else if (type === "house_4_00224") offsetY = -5;
 
-      tree.position.set(0, offsetY);
+      tree.position.set(0, offsetY * this.ratio);
       tree.height = 0;
 
       floorContainer.addChild(tree);
@@ -133,9 +132,19 @@ export class House {
       width: floor.width,
       type,
     });
+    return realHeight;
   }
 
-  //Последних два этажа защитать, как за один
+  public getTopGlobalY(): number {
+    return this.houseContainer.toGlobal({
+      x: 0,
+      y: -this.currentHeight,
+    }).y;
+  }
+
+  public getHouseHeight(): number {
+    return this.currentHeight;
+  }
 
   public getNextType(): TypeFloor {
     return this.FLOOR_ORDER[this.houseFloor.length] ?? "house_500000";
@@ -152,5 +161,8 @@ export class House {
   }
   public getTopY(): number {
     return this.houseContainer.y - this.currentHeight;
+  }
+  public getSoundBuild() {
+    sound.play(AssetsDB.audio.Soft_Slide_02___Short_02);
   }
 }

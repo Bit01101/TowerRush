@@ -1,23 +1,26 @@
-import { AnimatedSprite, Container, HTMLText, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, HTMLText, Sprite, Text } from "pixi.js";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import gsap from "gsap";
 import { RapidGrowth } from "./rapidGrowth";
 import { AnimationService } from "../utilities/animations/animation";
 import { UI, WidgetRoot } from "../../plugins/Game/UI";
+import { sound } from "@pixi/sound";
 
 type Viewport = { x: number; y: number };
-type CursorMode = "feed" | "cash" | "win" | null;
 
 export class UIScreen {
   ui: UI;
   navHeight = 200;
   buttonsContainer = new Container();
+  navContainer = new Container();
+
   private scoreText!: HTMLText;
   private rapid!: RapidGrowth;
   private rapidShown = false;
-  private activeCursorMode: CursorMode = null;
 
   borderList: Container[] = [];
+
+  // фикс: отдельный игровой индекс (важно)
 
   currentMode: Sprite = Sprite.from("MULTIPLIER_00110");
 
@@ -85,7 +88,6 @@ export class UIScreen {
     private pos: Viewport,
   ) {
     this.ui = ui;
-
     this.rapid = new RapidGrowth();
 
     this.createNav(pos);
@@ -94,66 +96,57 @@ export class UIScreen {
     this.createButtonContainer();
   }
 
-  private createNav(pos: { x: number; y: number }) {
+  private createNav(pos: Viewport) {
     const nav = Sprite.from(AssetsDB.texture.UI_bcgr_00000);
-
     this.ui.add(nav, WidgetRoot.BOTTOM);
 
     nav.anchor.set(0.5);
-
     nav.width = pos.x;
     nav.height = this.navHeight;
+    this.navContainer = nav;
   }
 
   private createLogo() {
     const logo = Sprite.from(AssetsDB.texture.logo_00379_00303);
-
     logo.anchor.set(0.5);
     logo.scale.set(0.35);
 
     this.ui.add(logo, WidgetRoot.TOP_RIGHT, { x: -5, y: 5 });
-    console.log(logo.getBounds());
-    console.log(logo.position);
   }
 
   private createModeText() {
-    this.currentMode = Sprite.from(
-      this.resultMultiply[this.borderList.length]?.mode ?? "MULTIPLIER_00110",
-    );
+    this.currentMode = Sprite.from("MULTIPLIER_00110");
     this.currentMode.anchor.set(0.5);
+
     this.ui.add(this.currentMode, WidgetRoot.RIGHT, {
       x: 0,
       y: this.pos.y / 3 - this.pos.y / 2,
     });
-    this.currentMode.scale = 0.65;
+
+    this.currentMode.scale.set(0.65);
   }
 
-  public createPersentScorePanel(
-    pos: { x: number; y: number },
-    score: number,
-  ): number {
+  public createPersentScorePanel(pos: Viewport, score: number): number {
     const containerScore = new Container();
     const border = Sprite.from(AssetsDB.texture.Plach_00000);
-    const textScore = Sprite.from(
-      this.resultMultiply[this.borderList.length].imageName,
-    );
-    const textScoreCenter = Sprite.from(
-      this.resultMultiply[this.borderList.length].imageNameCenter,
-    );
 
-    containerScore.addChild(border);
-    containerScore.addChild(textScore);
-    containerScore.addChild(textScoreCenter);
+    const maxIndex = Object.keys(this.resultMultiply).length - 1;
+
+    const index = Math.min(this.borderList.length, maxIndex);
+    const config = this.resultMultiply[index];
+
+    const textScore = Sprite.from(config.imageName);
+    const textScoreCenter = Sprite.from(config.imageNameCenter);
+
+    containerScore.addChild(border, textScore, textScoreCenter);
     this.ui.add(containerScore, WidgetRoot.RIGHT);
 
     border.anchor.set(0.5);
     border.position.set(0);
     border.scale.set(0.5);
     border.alpha = 0;
-    gsap.to(border, {
-      alpha: 100,
-      duration: 100,
-    });
+
+    gsap.to(border, { alpha: 1, duration: 0.2 });
 
     containerScore.position.set(pos.x - border.width / 2, pos.y / 3 + 50);
 
@@ -162,7 +155,6 @@ export class UIScreen {
 
     textScoreCenter.anchor.set(0.5);
 
-    // старт: центр экрана
     const globalStart = { x: pos.x / 2, y: pos.y / 3 };
     const localStart = containerScore.toLocal(globalStart);
 
@@ -172,7 +164,7 @@ export class UIScreen {
     textScoreCenter.rotation = 0;
 
     const tl = gsap.timeline();
-
+    this.getSoundShowScore();
     tl.to(textScoreCenter, {
       scale: 0.8,
       duration: 0.3,
@@ -211,61 +203,69 @@ export class UIScreen {
     );
 
     this.borderList.unshift(containerScore);
-    this.borderList.forEach((c, i) =>
+
+    this.borderList.forEach((c, i) => {
       gsap.to(c, {
-        x: pos.x - border.width / 2,
         y: pos.y / 3 + (i + 1) * 50,
+        duration: 0.3,
         onComplete: () => this.updateMode(),
-      }),
-    );
+      });
+    });
 
-    const index = this.borderList.length - 1;
-    const degree = this.resultMultiply[index]?.degree ?? 1;
-
-    return score * degree;
+    return score * config.degree;
   }
 
   private updateMode() {
     const index = this.borderList.length - 1;
-    const config = this.resultMultiply[index];
 
+    const config = this.resultMultiply[index];
     if (!config) return;
 
-    const mode = config.mode;
-
-    if (mode === "VOID_MODE_00280" && !this.rapidShown) {
+    if (config.mode === "VOID_MODE_00280" && !this.rapidShown) {
       this.rapid.showPanelRapid(this.ui.container, this.pos, 2500);
       this.rapidShown = true;
     }
 
-    this.currentMode.texture = Sprite.from(AssetsDB.texture[mode]).texture;
+    this.currentMode.texture = Sprite.from(
+      AssetsDB.texture[config.mode],
+    ).texture;
   }
 
   private createButtonContainer() {
-    this.ui.add(this.buttonsContainer, WidgetRoot.BOTTOM, {
-      x: 0,
-      y: this.navHeight / 4,
-    });
+    this.navContainer.addChild(this.buttonsContainer);
   }
 
   public createButtons() {
     const navWidth = this.pos.x;
-    const targetWidth = navWidth * 0.2;
+    const targetWidth = navWidth * 0.5;
 
     const buttonCashOut = new Container();
     const bgCashOut = Sprite.from(
       AssetsDB.texture.CASH_OUT_button_00000_00000_00000,
     );
-    const textCashOut = Sprite.from(AssetsDB.texture.CASH_OUT_00000_00000);
+    const textCashOut = new Text({
+      text: "FeedTEST",
+      style: {
+        fill: "#fff",
+        fontSize: 48,
+        fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+      },
+    });
 
     bgCashOut.anchor.set(0.5);
     textCashOut.anchor.set(0.5);
-    textCashOut.scale.set(0.75);
-    textCashOut.position.y = bgCashOut.height * -0.1;
 
     buttonCashOut.addChild(bgCashOut, textCashOut);
 
-    this.createCashText(bgCashOut, bgCashOut.height * 0.1);
+    const baseWCash = bgCashOut.texture.orig.width;
+    const scaleCash = targetWidth / baseWCash;
+
+    buttonCashOut.scale.set(scaleCash);
+
+    textCashOut.scale.set(0.75);
+    textCashOut.position.y = -bgCashOut.texture.orig.height * 0.1;
+
+    this.createCashText(bgCashOut, bgCashOut.texture.orig.height * 0.1);
 
     const buttonFeed = new Container();
     const bgFeed = Sprite.from(AssetsDB.texture.Goo_button_00000_00000_00000);
@@ -276,16 +276,15 @@ export class UIScreen {
 
     buttonFeed.addChild(bgFeed, textFeed);
 
-    const scaleCash = targetWidth / bgCashOut.texture.orig.width;
-    const scaleFeed = targetWidth / bgFeed.texture.orig.width;
+    const baseWFeed = bgFeed.texture.orig.width;
+    const scaleFeed = targetWidth / baseWFeed;
 
-    buttonCashOut.scale.set(Math.min(1, scaleCash));
-    buttonFeed.scale.set(Math.min(1, scaleFeed));
+    buttonFeed.scale.set(scaleFeed);
 
-    const spacing = navWidth * 0.25;
+    const spacing = navWidth * 0.05;
 
-    buttonCashOut.position.set(-spacing / 2, 0);
-    buttonFeed.position.set(spacing / 2, 0);
+    buttonCashOut.position.set(-(targetWidth + spacing) / 2, 0);
+    buttonFeed.position.set((targetWidth + spacing) / 2, 0);
 
     this.buttonsContainer.addChild(buttonCashOut, buttonFeed);
 
@@ -337,40 +336,42 @@ export class UIScreen {
     return value.toLocaleString("fr-FR").replace(",", ".");
   }
 
-  private showCursor(target: Container, mode: CursorMode) {
+  private showCursor(target: Container) {
     if (this.cursor.parent) {
       this.cursor.stop();
       this.cursor.parent.removeChild(this.cursor);
     }
 
-    this.activeCursorMode = mode;
-
     target.addChild(this.cursor);
+
+    this.cursor.zIndex = 999;
 
     this.cursor.scale.set(0.5);
     this.cursor.anchor.set(0, 0);
-    this.cursor.position.set(this.cursor.width / 2, 0);
+    this.cursor.position.set(0, 0);
+    console.log(this.cursor.getBounds());
 
     this.cursor.play();
   }
+
   private hideCursor() {
     if (this.cursor.parent) {
       this.cursor.stop();
       this.cursor.parent.removeChild(this.cursor);
     }
-    this.activeCursorMode = null;
   }
 
   public cursorFeedShow(button: Container) {
-    this.showCursor(button, "feed");
+    this.showCursor(button);
   }
 
   public cursorCashOutShow(button: Container) {
-    this.showCursor(button, "cash");
+    this.showCursor(button);
   }
 
   public cursorWinShow(panel: Container) {
-    this.showCursor(panel, "win");
+    this.showCursor(panel);
+    console.log("Win");
   }
 
   public cursorFeedDisable() {
@@ -383,5 +384,8 @@ export class UIScreen {
 
   public cursorWinDisable() {
     this.hideCursor();
+  }
+  public getSoundShowScore() {
+    sound.play(AssetsDB.audio.fire_light_zjugrzn_);
   }
 }

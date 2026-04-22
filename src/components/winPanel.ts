@@ -4,9 +4,17 @@ import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import { AnimationService } from "../utilities/animations/animation";
 import gsap from "gsap";
 import { UIScreen } from "./uiScreen";
+import { sound } from "@pixi/sound";
 
 export class WinPanel {
   winPanel = new Container();
+
+  cursor: AnimatedSprite = AnimationService.animationsFromFrame(
+    "hand_bonus_",
+    0,
+    114,
+  );
+
   constructor(
     private ui: UI,
     private vp: { x: number; y: number },
@@ -22,13 +30,13 @@ export class WinPanel {
       119,
     );
 
+    this.getSoundtBigWin();
+
     gsap.to(this.winPanel, {
       scale: 1,
       duration: 2,
       ease: "elastic.out",
     });
-
-    this.uiScreen.cursorWinShow(this.winPanel);
 
     const spriteBG = Sprite.from(AssetsDB.texture.Big_win_Plach_00000);
     const spriteCity = Sprite.from(
@@ -41,6 +49,8 @@ export class WinPanel {
       AssetsDB.texture.COLLECT_WIN_All_00036_00085_00000,
     );
 
+    this.uiScreen.cursorWinShow(this.ui.container);
+
     const overlay = this.createDarkOverlay(this.vp);
 
     this.ui.add(overlay);
@@ -48,7 +58,6 @@ export class WinPanel {
 
     spriteBG.scale.set(1.5);
     textYouWin.scale.set(0.8);
-    // textScoreWin.scale.set(0.8);
 
     animPart.anchor.set(0.5);
     spriteBG.anchor.set(0.5);
@@ -74,6 +83,7 @@ export class WinPanel {
       textScoreWin,
       buttonCollectWin,
     );
+    this.showCursor(buttonCollectWin);
   }
 
   createDarkOverlay(vp: { x: number; y: number }) {
@@ -88,5 +98,34 @@ export class WinPanel {
     overlay.cursor = "auto";
 
     return overlay;
+  }
+
+  private showCursor(target: Container) {
+    this.cursor.alpha = 0;
+
+    gsap.to(this.cursor, {
+      alpha: 1,
+      duration: 3,
+      onComplete: () => {
+        if (this.cursor.parent) {
+          this.cursor.stop();
+          this.cursor.parent.removeChild(this.cursor);
+        }
+
+        target.addChild(this.cursor);
+
+        this.cursor.zIndex = 999;
+
+        this.cursor.scale.set(0.5);
+        this.cursor.anchor.set(0, 0);
+        this.cursor.position.set(0, 0);
+        console.log(this.cursor.getBounds());
+
+        this.cursor.play();
+      },
+    });
+  }
+  public getSoundtBigWin() {
+    sound.play(AssetsDB.audio.huge_win);
   }
 }
