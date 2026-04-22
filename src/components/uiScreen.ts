@@ -14,6 +14,7 @@ type Orientation = "portrait" | "landscape";
 export class UIScreen {
   ui: UI;
   buttonsContainer = new Container();
+  private prevScore = 40;
 
   private scoreText!: AnimatedText;
   private rapid!: RapidGrowth;
@@ -273,48 +274,9 @@ export class UIScreen {
     textFeed.anchor.set(0.5);
     buttonFeed.addChild(bgFeed, textFeed);
 
-    if (this.orientation === "landscape") {
-      const gap = 40;
+    this.buttonsContainer.addChild(buttonFeed, buttonCashOut);
 
-      buttonCashOut.x = -gap / 2 - buttonCashOut.width / 2;
-      buttonFeed.x = gap / 2 + buttonFeed.width / 2;
-
-      buttonCashOut.y = 0;
-      buttonFeed.y = 0;
-    } else if (this.orientation === "portrait") {
-      const navHeight = this.getNavHeight();
-      const padding = 20;
-      const gap = 16;
-
-      const availableHeight = navHeight - padding * 2;
-
-      const maxButtonHeight = (availableHeight - gap) / 2;
-
-      const scale = Math.min(
-        maxButtonHeight / buttonCashOut.height,
-        maxButtonHeight / buttonFeed.height,
-      );
-
-      buttonCashOut.scale.set(scale);
-      buttonFeed.scale.set(scale);
-
-      buttonCashOut.x = 0;
-      buttonFeed.x = 0;
-
-      const totalHeight = buttonCashOut.height + buttonFeed.height + gap;
-
-      let startY = -totalHeight / 2;
-
-      buttonCashOut.y = startY + buttonCashOut.height / 2;
-
-      buttonFeed.y =
-        buttonCashOut.y +
-        buttonCashOut.height / 2 +
-        gap +
-        buttonFeed.height / 2;
-    }
-
-    this.buttonsContainer.addChild(buttonCashOut, buttonFeed);
+    this.layoutButtons(buttonFeed, buttonCashOut);
 
     return { buttonCashOut, buttonFeed };
   }
@@ -332,7 +294,9 @@ export class UIScreen {
   }
 
   setScore(v: number) {
-    this.scoreText.text = `${v} EUR`;
+    this.scoreText.setValue(this.prevScore, v);
+
+    this.prevScore = v;
   }
 
   createCashText(parent: Container, offset: number) {
@@ -386,4 +350,100 @@ export class UIScreen {
   }
 
   public cursorFeedShow(button: Container) {
-    this.s
+    this.showCursor(button);
+  }
+
+  public cursorCashOutShow(button: Container) {
+    this.showCursor(button);
+  }
+
+  public cursorWinShow(panel: Container) {
+    this.showCursor(panel);
+  }
+
+  public cursorFeedDisable() {
+    this.hideCursor();
+  }
+
+  public cursorCashOutDisable() {
+    this.hideCursor();
+  }
+
+  public cursorWinDisable() {
+    this.hideCursor();
+  }
+  public getSoundShowScore() {
+    sound.play(AssetsDB.audio.fire_light_zjugrzn_);
+  }
+
+  private layoutButtons(buttonCashOut: Container, buttonFeed: Container) {
+    const isPortrait = this.orientation === "portrait";
+
+    if (!isPortrait) this.layoutLandscape(buttonFeed, buttonCashOut);
+    else this.layoutPortrait(buttonCashOut, buttonFeed);
+  }
+
+  private layoutLandscape(a: Container, b: Container) {
+    const gap = 40;
+
+    const maxWidth = this.pos.x * 0.9;
+    const totalWidth = a.width + b.width + gap;
+
+    const scale = Math.min(1, maxWidth / totalWidth);
+    const finalScale = Math.max(scale, 0.6);
+
+    a.scale.set(finalScale);
+    b.scale.set(finalScale);
+
+    const wA = a.width;
+    const wB = b.width;
+
+    const total = wA + gap + wB;
+
+    // центр по X
+    const startX = -total / 2;
+
+    a.x = startX + wA / 2;
+    b.x = a.x + wA / 2 + gap + wB / 2;
+
+    // ключевое: центр по Y внутри nav
+    const navCenterY = 0;
+
+    a.y = navCenterY;
+    b.y = navCenterY;
+  }
+
+  private layoutPortrait(a: Container, b: Container) {
+    const navHeight = this.getNavHeight();
+
+    const padding = 20;
+    const gap = 16;
+
+    const available = navHeight - padding * 2;
+
+    const maxHeight = (available - gap) / 2;
+
+    const scale = Math.min(maxHeight / a.height, maxHeight / b.height, 1);
+
+    a.scale.set(scale);
+    b.scale.set(scale);
+
+    a.x = 0;
+    b.x = 0;
+
+    const totalHeight = a.height + gap + b.height;
+
+    const startY = -totalHeight / 2;
+
+    a.y = startY + a.height / 2;
+
+    b.y = a.y + a.height / 2 + gap + b.height / 2;
+  }
+
+  getOrientation(vp: { x: number; y: number }): Orientation {
+    const aspect = vp.x / vp.y;
+
+    if (aspect <= 0.7) return "portrait";
+    return "landscape";
+  }
+}

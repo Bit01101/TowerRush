@@ -88,7 +88,7 @@ export async function Main(game: Game) {
   });
 
   const uiScreen = new UIScreen(ui, adaptive, percent);
-  const house = new House(bgLayer, adaptive);
+  const house = new House(bgLayer, adaptive, offset);
   const winPanel = new WinPanel(ui, adaptive, uiScreen);
 
   const zoom = new Zoom(worldContainer, house, adaptive.y);

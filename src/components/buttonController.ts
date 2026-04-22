@@ -24,6 +24,7 @@ export class ButtonController {
   private isFirstClick = true;
   private isFeedLocked = false;
   private isCashLocked = false;
+  private isGameFinished = false;
   private bgPlayed = false;
 
   private score = 40;
@@ -46,7 +47,12 @@ export class ButtonController {
   private bindFeed(buttonFeed: Container, buttonCashOut: Container) {
     OnClick(buttonFeed, () => {
       this.getButtonClickSound();
-      if (this.isFeedLocked || this.deps.house.getIsBuildingStatus()) return;
+      if (
+        this.isFeedLocked ||
+        this.isGameFinished ||
+        this.deps.house.getIsBuildingStatus()
+      )
+        return;
 
       this.isFeedLocked = true;
 
@@ -65,6 +71,8 @@ export class ButtonController {
           onComplete: () => {
             this.isFeedLocked = false;
 
+            if (this.isGameFinished) return;
+
             if (this.deps.house.getHouseFloor().length < 8)
               this.deps.ui.cursorFeedShow(buttonFeed);
             else this.deps.ui.cursorCashOutShow(buttonCashOut);
@@ -81,6 +89,8 @@ export class ButtonController {
         );
 
         this.score = newScore;
+
+        this.deps.ui.setScore(this.score);
 
         this.getSoundScore();
         if (!this.isFirstClick) {
@@ -100,14 +110,17 @@ export class ButtonController {
 
   private bindCash(buttonCashOut: Container) {
     OnClick(buttonCashOut, () => {
-      this.deps.ui.cursorCashOutDisable();
       if (this.isCashLocked) return;
       if (this.deps.house.getHouseFloor().length < 8) return;
 
+      this.isGameFinished = true;
+
+      this.deps.ui.cursorCashOutDisable();
+
       this.isCashLocked = true;
-      this.getSoundtCashOut();
-      Play(AnimPulseIn(buttonCashOut, 0.9, 0.5));
+
       this.deps.winPanel.createWinPanel();
+      Play(AnimPulseIn(buttonCashOut, 0.9, 0.5));
     });
   }
   private getButtonClickSound() {
@@ -118,5 +131,8 @@ export class ButtonController {
   }
   public getSoundtCashOut() {
     sound.play(AssetsDB.audio.common_win_bet);
+  }
+  public getScore() {
+    return this.score;
   }
 }

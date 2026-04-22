@@ -45,11 +45,12 @@ export class House {
   constructor(
     private parent: Container,
     pos: { x: number; y: number },
+    offset: number,
   ) {
     this.parent.addChild(this.houseContainer);
     this.houseContainer.zIndex = 1;
     this.ratio = pos.x / pos.y;
-    this.houseContainer.position.set(pos.x / 2, pos.y * this.ratio);
+    this.houseContainer.position.set(pos.x / 2, offset * 1.17);
     console.log(this.ratio);
   }
 
@@ -71,8 +72,8 @@ export class House {
         (this.houseFloor.length === 7 ? 0.8 : 1) -
       0.1;
 
-    floor.scale.set(scale * this.ratio);
-    floor.height = 0;
+    floor.scale.set(scale);
+    floor.scale.y = 0;
 
     floor.position.set(0, 0);
 
@@ -82,8 +83,10 @@ export class House {
     if (this.lastSpriteTree && this.lastFloorContainer)
       this.lastFloorContainer.removeChild(this.lastSpriteTree);
 
+    let tree: Sprite | null = null;
+
     if (config.tree) {
-      const tree = Sprite.from(config.tree);
+      tree = Sprite.from(config.tree);
 
       this.lastSpriteTree = tree;
       this.lastFloorContainer = floorContainer;
@@ -91,38 +94,53 @@ export class House {
       let offsetY = 0;
 
       tree.anchor.set(0.5, 1);
+
+      if (type === "Home3_00000_00645") offsetY = 30;
+      else if (type === "house_6_00000") offsetY = -15;
+
+      tree.position.set(0, offsetY);
+
       tree.scale.set(scale);
-
-      if (type === "Home3_00000_00645") {
-        offsetY = 10;
-        tree.scale.set(scale * 0.9);
-      } else if (type === "house_4_00224") offsetY = -5;
-
-      tree.position.set(0, offsetY * this.ratio);
-      tree.height = 0;
+      tree.scale.y = 0;
 
       floorContainer.addChild(tree);
-
-      gsap.to(tree, {
-        height: floor.texture.orig.height * scale * this.ratio,
-        duration: 1,
-        ease: "power2.inOut",
-      });
     }
 
     this.houseContainer.addChild(floorContainer);
 
-    const realHeight = floor.texture.orig.height * scale * this.ratio;
+    const realHeight = floor.texture.orig.height * scale;
 
-    gsap.to(floor, {
-      height: realHeight,
+    gsap.to(floor.scale, {
+      y: scale,
       duration: 1,
-      ease: "power2.inOut",
+      ease: "power2.out",
+      onComplete: () => {
+        this.isBuilding = false;
+      },
+    });
+    const tl = gsap.timeline({
       onComplete: () => {
         this.isBuilding = false;
       },
     });
 
+    tl.to(floor.scale, {
+      y: scale,
+      duration: 1,
+      ease: "power2.out",
+    });
+
+    if (tree) {
+      tl.to(
+        tree.scale,
+        {
+          y: scale,
+          duration: 1,
+          ease: "power2.out",
+        },
+        "<", // одновременно
+      );
+    }
     this.currentHeight += realHeight;
     this.currentHeight -=
       realHeight * config.offsetY * (this.houseFloor.length > 5 ? 1.028 : 1);

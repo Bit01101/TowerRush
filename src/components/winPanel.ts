@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { UIScreen } from "./uiScreen";
 import { sound } from "@pixi/sound";
 import { i18n } from "../utilities/localize";
+import { AnimatedText } from "../../plugins/Utils/Components/AnimatedText";
 
 export class WinPanel {
   winPanel = new Container();
@@ -47,20 +48,27 @@ export class WinPanel {
     const textYouWin = new Text({
       text: i18n.t("YOU_WIN"),
       style: {
-        fill: "#fff",
+        fill: "#ff0",
         fontSize: 128,
         fontFamily: AssetsDB.font.Montserrat_ExtraBold,
       },
     });
 
-    const textScoreWin = new Text({
-      text: this.uiScreen.getScore(),
-      style: {
-        fill: "#fff",
-        fontSize: 128,
-        fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+    const textScoreWin = new AnimatedText(
+      {
+        style: {
+          fontSize: 64,
+          fill: "#0f0",
+          fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+        },
       },
-    });
+      0, // initValue
+      1, // animDuration
+      "", // prefix
+      " EUR", // postfix
+      0, // roundTo
+    );
+    textScoreWin.setValue(0, parseFloat(this.uiScreen.getScore().text));
 
     const buttonCollectWin = Sprite.from(
       AssetsDB.texture.COLLECT_WIN_All_00036_00085_00000,
