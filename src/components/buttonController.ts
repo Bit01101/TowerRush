@@ -7,6 +7,7 @@ import { House } from "../components/house";
 import { WinPanel } from "../components/winPanel";
 import { sound } from "@pixi/sound";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
+import { Zoom } from "../utilities/zoom/zoom";
 
 type ButtonControllerDeps = {
   ui: UIScreen;
@@ -16,6 +17,7 @@ type ButtonControllerDeps = {
   bg: AnimatedSprite;
   bgFront: AnimatedSprite;
   worldContainer: Container;
+  zoom: Zoom;
 };
 
 export class ButtonController {
@@ -78,12 +80,14 @@ export class ButtonController {
           this.score,
         );
 
-        this.deps.ui.animateScore(this.score, newScore);
         this.score = newScore;
 
         this.getSoundScore();
         if (!this.isFirstClick) {
           this.deps.house.createHouse();
+          setInterval(() => {
+            this.deps.zoom.followHouse();
+          }, 500);
 
           if (isDoubleBuild)
             setTimeout(() => this.deps.house.createHouse(), 1000);

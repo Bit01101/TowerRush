@@ -1,26 +1,26 @@
-import { AnimatedSprite, Container, HTMLText, Sprite, Text } from "pixi.js";
+import { AnimatedSprite, Container, Sprite, Text } from "pixi.js";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import gsap from "gsap";
 import { RapidGrowth } from "./rapidGrowth";
 import { AnimationService } from "../utilities/animations/animation";
 import { UI, WidgetRoot } from "../../plugins/Game/UI";
 import { sound } from "@pixi/sound";
+import { i18n } from "../utilities/localize";
+import { AnimatedText } from "../../plugins/Utils/Components/AnimatedText";
 
 type Viewport = { x: number; y: number };
+type Orientation = "portrait" | "landscape";
 
 export class UIScreen {
   ui: UI;
-  navHeight = 200;
   buttonsContainer = new Container();
-  navContainer = new Container();
 
-  private scoreText!: HTMLText;
+  private scoreText!: AnimatedText;
   private rapid!: RapidGrowth;
   private rapidShown = false;
+  private orientation: "portrait" | "landscape";
 
   borderList: Container[] = [];
-
-  // фикс: отдельный игровой индекс (важно)
 
   currentMode: Sprite = Sprite.from("MULTIPLIER_00110");
 
@@ -86,6 +86,7 @@ export class UIScreen {
   constructor(
     ui: UI,
     private pos: Viewport,
+    private navHeight: number,
   ) {
     this.ui = ui;
     this.rapid = new RapidGrowth();
@@ -94,6 +95,7 @@ export class UIScreen {
     this.createLogo();
     this.createModeText();
     this.createButtonContainer();
+    this.orientation = this.getOrientation(pos);
   }
 
   private createNav(pos: Viewport) {
@@ -102,8 +104,7 @@ export class UIScreen {
 
     nav.anchor.set(0.5);
     nav.width = pos.x;
-    nav.height = this.navHeight;
-    this.navContainer = nav;
+    nav.height = pos.y * 0.2;
   }
 
   private createLogo() {
@@ -232,59 +233,86 @@ export class UIScreen {
   }
 
   private createButtonContainer() {
-    this.navContainer.addChild(this.buttonsContainer);
+    this.ui.add(this.buttonsContainer, WidgetRoot.BOTTOM);
   }
 
   public createButtons() {
-    const navWidth = this.pos.x;
-    const targetWidth = navWidth * 0.5;
-
     const buttonCashOut = new Container();
+    const buttonFeed = new Container();
+
     const bgCashOut = Sprite.from(
       AssetsDB.texture.CASH_OUT_button_00000_00000_00000,
     );
+    const bgFeed = Sprite.from(AssetsDB.texture.Goo_button_00000_00000_00000);
+
     const textCashOut = new Text({
-      text: "FeedTEST",
+      text: i18n.t("CASH_OUT"),
       style: {
         fill: "#fff",
-        fontSize: 48,
+        fontSize: 64,
+        fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+      },
+    });
+
+    const textFeed = new Text({
+      text: i18n.t("FEED"),
+      style: {
+        fill: "#fff",
+        fontSize: 64,
         fontFamily: AssetsDB.font.Montserrat_ExtraBold,
       },
     });
 
     bgCashOut.anchor.set(0.5);
     textCashOut.anchor.set(0.5);
-
     buttonCashOut.addChild(bgCashOut, textCashOut);
-
-    const baseWCash = bgCashOut.texture.orig.width;
-    const scaleCash = targetWidth / baseWCash;
-
-    buttonCashOut.scale.set(scaleCash);
-
-    textCashOut.scale.set(0.75);
-    textCashOut.position.y = -bgCashOut.texture.orig.height * 0.1;
-
-    this.createCashText(bgCashOut, bgCashOut.texture.orig.height * 0.1);
-
-    const buttonFeed = new Container();
-    const bgFeed = Sprite.from(AssetsDB.texture.Goo_button_00000_00000_00000);
-    const textFeed = Sprite.from(AssetsDB.texture.Go_00000_00000_00000);
+    this.createCashText(bgCashOut, bgCashOut.texture.orig.height * 0.2);
+    textCashOut.position.set(0, -bgCashOut.texture.orig.height * 0.2);
 
     bgFeed.anchor.set(0.5);
     textFeed.anchor.set(0.5);
-
     buttonFeed.addChild(bgFeed, textFeed);
 
-    const baseWFeed = bgFeed.texture.orig.width;
-    const scaleFeed = targetWidth / baseWFeed;
+    if (this.orientation === "landscape") {
+      const gap = 40;
 
-    buttonFeed.scale.set(scaleFeed);
+      buttonCashOut.x = -gap / 2 - buttonCashOut.width / 2;
+      buttonFeed.x = gap / 2 + buttonFeed.width / 2;
 
-    const spacing = navWidth * 0.05;
+      buttonCashOut.y = 0;
+      buttonFeed.y = 0;
+    } else if (this.orientation === "portrait") {
+      const navHeight = this.getNavHeight();
+      const padding = 20;
+      const gap = 16;
 
-    buttonCashOut.position.set(-(targetWidth + spacing) / 2, 0);
-    buttonFeed.position.set((targetWidth + spacing) / 2, 0);
+      const availableHeight = navHeight - padding * 2;
+
+      const maxButtonHeight = (availableHeight - gap) / 2;
+
+      const scale = Math.min(
+        maxButtonHeight / buttonCashOut.height,
+        maxButtonHeight / buttonFeed.height,
+      );
+
+      buttonCashOut.scale.set(scale);
+      buttonFeed.scale.set(scale);
+
+      buttonCashOut.x = 0;
+      buttonFeed.x = 0;
+
+      const totalHeight = buttonCashOut.height + buttonFeed.height + gap;
+
+      let startY = -totalHeight / 2;
+
+      buttonCashOut.y = startY + buttonCashOut.height / 2;
+
+      buttonFeed.y =
+        buttonCashOut.y +
+        buttonCashOut.height / 2 +
+        gap +
+        buttonFeed.height / 2;
+    }
 
     this.buttonsContainer.addChild(buttonCashOut, buttonFeed);
 
@@ -299,37 +327,33 @@ export class UIScreen {
     return this.navHeight;
   }
 
+  public getScore(): AnimatedText {
+    return this.scoreText;
+  }
+
   setScore(v: number) {
     this.scoreText.text = `${v} EUR`;
   }
 
   createCashText(parent: Container, offset: number) {
-    this.scoreText = new HTMLText({
-      text: "40.00 EUR",
-      style: {
-        fill: "#fff",
-        fontSize: 48,
+    this.scoreText = new AnimatedText(
+      {
+        style: {
+          fontSize: 64,
+          fill: "#fff",
+        },
       },
-    });
+      40, // initValue
+      0.6, // animDuration
+      "", // prefix
+      " EUR", // postfix
+      2, // roundTo
+    );
 
-    this.scoreText.anchor.set(0.5);
     this.scoreText.position.set(0, offset);
+    this.scoreText.anchor?.set?.(0.5);
 
-    parent.addChild(this.scoreText);
-  }
-
-  animateScore(from: number, to: number) {
-    const obj = { value: from };
-
-    gsap.to(obj, {
-      value: Math.floor(to),
-      duration: 0.6,
-      ease: "power2.out",
-
-      onUpdate: () => {
-        this.scoreText.text = `${this.formatNumber(obj.value)} EUR`;
-      },
-    });
+    parent.addChild(this.scoreText as AnimatedText);
   }
 
   formatNumber(value: number) {
@@ -362,30 +386,4 @@ export class UIScreen {
   }
 
   public cursorFeedShow(button: Container) {
-    this.showCursor(button);
-  }
-
-  public cursorCashOutShow(button: Container) {
-    this.showCursor(button);
-  }
-
-  public cursorWinShow(panel: Container) {
-    this.showCursor(panel);
-    console.log("Win");
-  }
-
-  public cursorFeedDisable() {
-    this.hideCursor();
-  }
-
-  public cursorCashOutDisable() {
-    this.hideCursor();
-  }
-
-  public cursorWinDisable() {
-    this.hideCursor();
-  }
-  public getSoundShowScore() {
-    sound.play(AssetsDB.audio.fire_light_zjugrzn_);
-  }
-}
+    this.s

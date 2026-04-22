@@ -1,5 +1,7 @@
 import { AnimationService } from "../utilities/animations/animation";
-import { Container } from "pixi.js";
+import { Container, Text } from "pixi.js";
+import { i18n } from "../utilities/localize";
+import { gsap } from "gsap";
 
 type Viewport = { x: number; y: number };
 
@@ -7,7 +9,14 @@ export class RapidGrowth {
   container = new Container();
 
   bgRapid = AnimationService.animationsFromFrame("A1108_10_9x16_", 257, 273);
-  rapidText = AnimationService.animationsFromFrame("RAPID_GROWTH_", 0, 40);
+  rapidText = new Text({
+    text: i18n.t("RAPID_GROWTH"),
+    style: {
+      fill: "#E57501",
+      fontSize: 128,
+      fontFamily: "Montserrat_ExtraBold",
+    },
+  });
 
   constructor() {
     this.container.addChild(this.bgRapid);
@@ -49,12 +58,16 @@ export class RapidGrowth {
     this.fitToScreen(vp);
 
     this.bgRapid.play();
-    this.rapidText.play();
-    this.rapidText.loop = false;
 
     setTimeout(() => {
       if (this.container.parent)
         this.container.parent.removeChild(this.container);
     }, timeClose);
+
+    gsap.to(this.rapidText, {
+      scale: 1,
+      duration: 2,
+      ease: "elastic.out",
+    });
   }
 }

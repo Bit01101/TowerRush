@@ -48,8 +48,9 @@ export class House {
   ) {
     this.parent.addChild(this.houseContainer);
     this.houseContainer.zIndex = 1;
-    this.houseContainer.position.set(pos.x / 2, pos.y * 1.25);
-    this.ratio = parent.height / parent.width;
+    this.ratio = pos.x / pos.y;
+    this.houseContainer.position.set(pos.x / 2, pos.y * this.ratio);
+    console.log(this.ratio);
   }
 
   public createHouse(): number {

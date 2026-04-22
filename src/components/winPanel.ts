@@ -1,10 +1,11 @@
-import { AnimatedSprite, Container, Graphics, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, Graphics, Sprite, Text } from "pixi.js";
 import { UI } from "../../plugins/Game/UI";
 import { AssetsDB } from "../../plugins/Assets/_DATA_BASE/AssetsDB";
 import { AnimationService } from "../utilities/animations/animation";
 import gsap from "gsap";
 import { UIScreen } from "./uiScreen";
 import { sound } from "@pixi/sound";
+import { i18n } from "../utilities/localize";
 
 export class WinPanel {
   winPanel = new Container();
@@ -42,14 +43,28 @@ export class WinPanel {
     const spriteCity = Sprite.from(
       AssetsDB.texture.big_win_home_00000_00000_00033,
     );
-    const textYouWin = Sprite.from(AssetsDB.texture.You_win_00000);
-    const textScoreWin = Sprite.from(AssetsDB.texture.EURO_00085);
+
+    const textYouWin = new Text({
+      text: i18n.t("YOU_WIN"),
+      style: {
+        fill: "#fff",
+        fontSize: 128,
+        fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+      },
+    });
+
+    const textScoreWin = new Text({
+      text: this.uiScreen.getScore(),
+      style: {
+        fill: "#fff",
+        fontSize: 128,
+        fontFamily: AssetsDB.font.Montserrat_ExtraBold,
+      },
+    });
 
     const buttonCollectWin = Sprite.from(
       AssetsDB.texture.COLLECT_WIN_All_00036_00085_00000,
     );
-
-    this.uiScreen.cursorWinShow(this.ui.container);
 
     const overlay = this.createDarkOverlay(this.vp);
 
@@ -83,7 +98,17 @@ export class WinPanel {
       textScoreWin,
       buttonCollectWin,
     );
+
     this.showCursor(buttonCollectWin);
+
+    const bounds = this.winPanel.getLocalBounds();
+
+    const scaleX = (this.vp.x * 0.7) / bounds.width;
+    const scaleY = (this.vp.y * 0.7) / bounds.height;
+
+    const scale = Math.min(scaleX, scaleY, 1);
+
+    this.winPanel.scale.set(scale);
   }
 
   createDarkOverlay(vp: { x: number; y: number }) {
@@ -125,6 +150,7 @@ export class WinPanel {
       },
     });
   }
+
   public getSoundtBigWin() {
     sound.play(AssetsDB.audio.huge_win);
   }

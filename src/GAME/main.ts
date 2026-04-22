@@ -11,8 +11,7 @@ import { House } from "../components/house";
 import { WinPanel } from "../components/winPanel";
 import { ButtonController } from "../components/buttonController";
 import { sound } from "@pixi/sound";
-import { Localize } from "../utilities/localize";
-import { LocalKey } from "../BUILD/Localization";
+import { Zoom } from "../utilities/zoom/zoom";
 
 export async function Main(game: Game) {
   await AssetsBase64.loadAll();
@@ -20,12 +19,14 @@ export async function Main(game: Game) {
   if (!sound.exists("desert_winds"))
     sound.add("desert_winds", "assets/Audio/desert_winds.mp3");
 
-  const localize = new Localize();
+  // localize.setLang(LANGUAGE);
 
   sound.play("desert_winds", {
     loop: true,
     volume: 1,
   });
+
+  console.log(LANGUAGE);
 
   const design = game.config.designSize;
 
@@ -49,8 +50,10 @@ export async function Main(game: Game) {
   root.addChild(worldContainer);
   worldContainer.addChild(bgLayer);
 
-  worldContainer.pivot.set(adaptive.x / 2, adaptive.y / 2);
-  worldContainer.position.set(adaptive.x / 2, adaptive.y / 2);
+  worldContainer.pivot.set(0);
+
+  const percent = adaptive.y * 0.2;
+  const offset = adaptive.y - percent;
 
   const bg = AnimationService.animationsFromFrame("BG_", 0, 65);
   const ratioBg = bg.texture.height / bg.texture.width;
@@ -59,7 +62,7 @@ export async function Main(game: Game) {
   bg.width = adaptive.x;
   bg.height = adaptive.x * ratioBg;
   bg.anchor.set(0, 1);
-  bg.position.y = adaptive.y - 200;
+  bg.position.y = offset;
 
   const bgFront = AnimationService.animationsFromFrame("BG2_", 0, 65);
   const ratioBgFront = bgFront.texture.height / bgFront.texture.width;
@@ -68,7 +71,7 @@ export async function Main(game: Game) {
   bgFront.width = adaptive.x;
   bgFront.height = adaptive.x * ratioBgFront;
   bgFront.anchor.set(0, 1);
-  bgFront.position.y = adaptive.y - 200;
+  bgFront.position.y = offset;
   bgFront.zIndex = 2;
 
   bgLayer.addChild(bg, bgFront);
@@ -84,9 +87,11 @@ export async function Main(game: Game) {
     sun.rotation += 0.005 * t.deltaTime;
   });
 
-  const uiScreen = new UIScreen(ui, adaptive);
+  const uiScreen = new UIScreen(ui, adaptive, percent);
   const house = new House(bgLayer, adaptive);
   const winPanel = new WinPanel(ui, adaptive, uiScreen);
+
+  const zoom = new Zoom(worldContainer, house, adaptive.y);
 
   house.createHouse();
   const { buttonCashOut, buttonFeed } = uiScreen.createButtons();
@@ -99,6 +104,7 @@ export async function Main(game: Game) {
     bg,
     bgFront,
     worldContainer,
+    zoom,
   });
 
   controller.bind(buttonFeed, buttonCashOut);

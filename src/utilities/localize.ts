@@ -48,6 +48,54 @@ export class Localize {
     },
   };
 
+  constructor() {
+    this.initLanguage();
+  }
+
+  private mapLanguageToLocale(lang: string): LocalizeKey {
+    const mapping: Record<string, LocalizeKey> = {
+      en: "EN",
+      de: "DE",
+      nl: "NL",
+      fr: "FR",
+      es: "ES",
+
+      EN: "EN",
+      DE: "DE",
+      NL: "NL",
+      FR: "FR",
+      ES: "ES",
+
+      zh: "EN",
+      hi: "EN",
+      ar: "EN",
+      ja: "EN",
+      pt: "EN",
+      auto: "EN",
+    };
+
+    return mapping[lang.toLowerCase()] ?? "EN";
+  }
+
+  private initLanguage() {
+    try {
+      // Проверяем наличие LANGUAGE
+      if (typeof (window as any).LANGUAGE !== "undefined") {
+        const detectedLang = (window as any).LANGUAGE;
+        this.currentLang = this.mapLanguageToLocale(detectedLang);
+      } else if (typeof LANGUAGE !== "undefined") {
+        // Для случаев когда LANGUAGE доступна глобально
+        this.currentLang = this.mapLanguageToLocale(LANGUAGE);
+      }
+    } catch (error) {
+      console.warn(
+        "Localize: Не удалось определить язык, используется EN",
+        error,
+      );
+      this.currentLang = "EN";
+    }
+  }
+
   public setLang(lang: LocalizeKey) {
     this.currentLang = lang;
   }
@@ -57,7 +105,17 @@ export class Localize {
   }
 
   public t(key: PhraseKey): string {
-    return this.dictionary[key][this.currentLang] ?? this.dictionary[key].EN;
+    const translation = this.dictionary[key]?.[this.currentLang];
+    return translation ?? this.dictionary[key]?.EN ?? key;
+  }
+  public getAvailableLanguages(): LocalizeKey[] {
+    return ["EN", "DE", "NL", "FR", "ES"];
+  }
+
+  public isLanguageSupported(lang: string): boolean {
+    return this.getAvailableLanguages().includes(
+      this.mapLanguageToLocale(lang) as LocalizeKey,
+    );
   }
 }
 
