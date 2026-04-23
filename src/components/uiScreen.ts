@@ -96,7 +96,7 @@ export class UIScreen {
     this.createLogo();
     this.createModeText();
     this.createButtonContainer();
-    this.orientation = this.getOrientation(pos);
+    this.orientation = UIScreen.getOrientation(pos);
   }
 
   private createNav(pos: Viewport) {
@@ -440,7 +440,7 @@ export class UIScreen {
     b.y = a.y + a.height / 2 + gap + b.height / 2;
   }
 
-  getOrientation(vp: { x: number; y: number }): Orientation {
+  static getOrientation(vp: { x: number; y: number }): Orientation {
     const aspect = vp.x / vp.y;
 
     if (aspect <= 0.7) return "portrait";

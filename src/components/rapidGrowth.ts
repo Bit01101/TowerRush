@@ -38,14 +38,14 @@ export class RapidGrowth {
     this.bgRapid.width = vp.x;
     this.bgRapid.height = vp.y;
 
-    const scaleX = vp.x / this.bgRapid.width;
-    const scaleY = vp.y / this.bgRapid.height;
+    const maxWidth = vp.x * 0.9;
 
-    const scale = Math.max(scaleX, scaleY);
+    this.rapidText.scale.set(1);
 
-    this.bgRapid.scale.set(scale);
-
-    this.rapidText.scale.set(Math.min(scale, 1));
+    if (this.rapidText.width > maxWidth) {
+      const scale = maxWidth / this.rapidText.width;
+      this.rapidText.scale.set(scale);
+    }
   }
 
   public async showPanelRapid(
@@ -64,8 +64,13 @@ export class RapidGrowth {
         this.container.parent.removeChild(this.container);
     }, timeClose);
 
-    gsap.to(this.rapidText, {
-      scale: 1,
+    const baseScale = this.rapidText.scale.x;
+
+    this.rapidText.scale.set(0);
+
+    gsap.to(this.rapidText.scale, {
+      x: baseScale,
+      y: baseScale,
       duration: 2,
       ease: "elastic.out",
     });

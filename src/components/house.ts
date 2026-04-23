@@ -45,13 +45,15 @@ export class House {
   constructor(
     private parent: Container,
     pos: { x: number; y: number },
-    offset: number,
+    private groundY: number,
   ) {
     this.parent.addChild(this.houseContainer);
+
     this.houseContainer.zIndex = 1;
-    this.ratio = pos.x / pos.y;
-    this.houseContainer.position.set(pos.x / 2, offset * 1.17);
-    console.log(this.ratio);
+
+    this.houseContainer.x = pos.x / 2;
+
+    this.houseContainer.y = this.groundY + this.groundY;
   }
 
   public createHouse(): number {
@@ -138,7 +140,7 @@ export class House {
           duration: 1,
           ease: "power2.out",
         },
-        "<", // одновременно
+        "<",
       );
     }
     this.currentHeight += realHeight;

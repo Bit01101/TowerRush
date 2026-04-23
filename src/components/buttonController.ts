@@ -96,6 +96,8 @@ export class ButtonController {
         if (!this.isFirstClick) {
           this.deps.house.createHouse();
           setInterval(() => {
+            if (UIScreen.getOrientation(this.deps.adaptive) === "portrait")
+              return;
             this.deps.zoom.followHouse();
           }, 500);
 
